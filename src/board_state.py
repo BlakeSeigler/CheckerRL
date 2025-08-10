@@ -16,11 +16,11 @@ class StateVector:
             ['w', 'o', 'w', 'o', 'w', 'o', 'w', 'o'],
         ]
         self.char_dict = {
-            'o': 0,
-            'w': 1, 
-            'b': 2, 
-            'kw': 3, 
-            'kb': 4, 
+            'o': 0.0,
+            'w': 1.0, 
+            'b': 2.0, 
+            'kw': 3.0, 
+            'kb': 4.0, 
         }
         self.inv_char_dict = {v: k for k, v in self.char_dict.items()}
 
@@ -37,16 +37,17 @@ class StateVector:
         return np.array(self.state).flatten()
     
     @classmethod
-    def from_int_numpy_vector(self, state: np.ndarray[int]) -> bool:
+    def from_float_numpy_vector(self, state: np.ndarray[float]) -> bool:
         assert state.shape == (64,)
         try:
-            intermediate = np.array([self.inv_char_dict[f] for f in state])
+            rounded = np.round(np.array(state))
+            intermediate = np.array([self.inv_char_dict[f] for f in rounded])     
             self.state = intermediate.reshape(8,8)
             return True
         except:
             return False
 
-    def to_int_numpy_array(self) -> np.ndarray[int]:
+    def to_int_numpy_array(self) -> np.ndarray[float]:
         intermediate = np.array(self.state).flatten()
         return np.array([self.char_dict[f] for f in intermediate])
     
