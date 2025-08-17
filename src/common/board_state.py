@@ -18,9 +18,9 @@ class StateVector:
         self.char_dict = {
             'o': 0.0,
             'w': 1.0, 
-            'b': 2.0, 
-            'kw': 3.0, 
-            'kb': 4.0, 
+            'b': -1.0, 
+            'kw': 2.0, 
+            'kb': -2.0, 
         }
         self.inv_char_dict = {v: k for k, v in self.char_dict.items()}
 
@@ -51,4 +51,9 @@ class StateVector:
         intermediate = np.array(self.state).flatten()
         return np.array([self.char_dict[f] for f in intermediate])
     
+    def __str__(self):
+        text = ""
+        for line in self.state:
+            text += f"{line}" + "\n "
 
+        return text
