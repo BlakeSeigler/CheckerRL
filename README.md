@@ -10,7 +10,8 @@ The first is a model based planner. This is a deterministic system with hard cod
 
 ## Monte Carlo Tree Search (MCTS) (IN PROGRESS)
 Very common algorithm for optimization approaches where the sample space is incredibly large (like 1e171 large)
+Is a heuristic search algorithm, not inherently RL but can be made that way if we update the policy for picking 
 
 ## Q-Learning (IN PROGRESS)
-This is a model free off-policy method that uses a neural network to represent the quality function. 
+This is a model free off-policy method that either updates a placeholder Q function or uses a neural network to represent the quality function. 
 
