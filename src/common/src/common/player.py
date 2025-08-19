@@ -1,4 +1,4 @@
-from common.src.common.board_state import StateVector
+from common.board_state import StateVector
 
 class Player():
 

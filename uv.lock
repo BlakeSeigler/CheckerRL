@@ -15,11 +15,15 @@ name = "checkerrl"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "common" },
     { name = "numpy" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "numpy", specifier = ">=2.3.2" }]
+requires-dist = [
+    { name = "common", editable = "src/common" },
+    { name = "numpy", specifier = ">=2.3.2" },
+]
 
 [[package]]
 name = "common"
