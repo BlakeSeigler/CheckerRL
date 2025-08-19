@@ -5,6 +5,7 @@ class StateVector:
     state: list[list[str]]
 
     def __init__(self):
+        self.terminating = False
         self.state = [
             ['o', 'b', 'o', 'b', 'o', 'b', 'o', 'b'],
             ['b', 'o', 'b', 'o', 'b', 'o', 'b', 'o'],

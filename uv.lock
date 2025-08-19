@@ -2,16 +2,45 @@ version = 1
 revision = 2
 requires-python = ">=3.12"
 
+[manifest]
+members = [
+    "checkerrl",
+    "common",
+    "model-based-planner",
+    "mtcs",
+]
+
 [[package]]
 name = "checkerrl"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "numpy" },
 ]
 
 [package.metadata]
 requires-dist = [{ name = "numpy", specifier = ">=2.3.2" }]
+
+[[package]]
+name = "common"
+version = "0.1.0"
+source = { editable = "src/common" }
+
+[[package]]
+name = "model-based-planner"
+version = "0.1.0"
+source = { editable = "src/model_based_planner" }
+dependencies = [
+    { name = "common" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "common", editable = "src/common" }]
+
+[[package]]
+name = "mtcs"
+version = "0.1.0"
+source = { editable = "src/MTCS" }
 
 [[package]]
 name = "numpy"

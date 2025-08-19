@@ -1,0 +1,20 @@
+[project]
+name = "model-based-planner"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "common",
+]
+
+[tool.uv.sources]
+common = { workspace = true }
+
+[project.scripts]
+mbp = "model_based_planner:run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+

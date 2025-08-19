@@ -7,3 +7,20 @@ requires-python = ">=3.12"
 dependencies = [
     "numpy>=2.3.2",
 ]
+
+[tool.uv.workspace]
+members = [
+    "src/common",
+    "src/model_based_planner",
+    "src/MTCS",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+source-directory = "src"
+
+[tool.hatch.build.targets.wheel]
+packages = ["model_based_planner", "common", "MTCS"]

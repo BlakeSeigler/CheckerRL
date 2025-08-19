@@ -1,7 +1,8 @@
 from common import Player, StateVector
-from algorithms import model_planner_algorithm
+from model_based_planner import model_planner_algorithm
 
-def Run_Game() -> Player | None:
+
+def run() -> Player | None:
     """Run game and return the winner"""
     print("Starting Game")
     white = Player('w', model_planner_algorithm.get_checkers_move)
@@ -29,4 +30,4 @@ def Run_Game() -> Player | None:
     return None
 
 if __name__=="__main__":
-    Run_Game()
+    run()
