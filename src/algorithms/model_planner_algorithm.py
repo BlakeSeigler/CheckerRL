@@ -55,7 +55,7 @@ def get_checkers_move(current_state: StateVector, self_color: str):
     # Main planner:
     color = self_color
 
-    legal_moves = generate_legal_moves(board, color)
+    legal_moves = current_state.generate_legal_moves(board, color)
     if not legal_moves:
         # no legal moves => return deep-copy without change
         return copy.deepcopy(current_state)
@@ -65,9 +65,9 @@ def get_checkers_move(current_state: StateVector, self_color: str):
 
     for move in legal_moves:
         # simulate our move
-        next_board = apply_move_to_board(board, move, color)
+        next_board = current_state.apply_move_to_board(board, move, color)
         # evaluate after opponent best response (1 ply opponent)
-        opp_moves = generate_legal_moves(next_board, opponent(color)) 
+        opp_moves = current_state.generate_legal_moves(next_board, opponent(color)) 
         if not opp_moves:
             # opponent has no moves -> we win: large score
             score = 1e6 + evaluate_board(next_board)
@@ -75,7 +75,7 @@ def get_checkers_move(current_state: StateVector, self_color: str):
         else:
             opp_best = 1e9
             for opp_move in opp_moves:
-                opp_board = apply_move_to_board(next_board, opp_move, opponent(color))
+                opp_board = current_state.apply_move_to_board(next_board, opp_move, opponent(color))
                 val = evaluate_board(opp_board)
                 if val < opp_best:
                     opp_best = val
@@ -89,7 +89,7 @@ def get_checkers_move(current_state: StateVector, self_color: str):
 
     # apply chosen move to a deep copy of current_state and return
     result_obj = copy.deepcopy(current_state)
-    result_obj.state = apply_move_to_board(board, best_move, color)
+    result_obj.state = current_state.apply_move_to_board(board, best_move, color)
     # if your StateVector has a 'to_move' attribute, toggle it
     if hasattr(result_obj, 'to_move'):
         result_obj.to_move = opponent(color)

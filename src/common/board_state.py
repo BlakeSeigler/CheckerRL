@@ -58,7 +58,7 @@ class StateVector:
 
         return text
     
-    def generate_legal_moves(board, color):
+    def generate_legal_moves(self, board, color):
         moves = []
         any_capture = False
 
@@ -163,7 +163,7 @@ class StateVector:
     
 
             # Apply a move sequence to a board and return a new board deep-copied
-    def apply_move_to_board(board, move_seq, color):
+    def apply_move_to_board(self, board, move_seq, color):
 
         # HELPERS
         def promote_if_needed(piece, r, color):
