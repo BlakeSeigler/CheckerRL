@@ -37,6 +37,10 @@ class Node:
             new_child = self.unsimulated_children.pop(new_child_index)
             self.simulated_children.append(new_child)
 
+        # If fully expanded, then check that
+        if len(self.unsimulated_children) <= 0:
+            self.is_expanded = True
+
         return new_child
     
 
@@ -66,3 +70,6 @@ class Node:
     
     def set_terminal(self):
         self.terminal = True
+
+    def get_is_expanded(self):
+        return self.is_expanded

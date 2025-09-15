@@ -4,34 +4,32 @@ from NeuralNetwork import NeuralNetwork
 
 class MCTS_Tree:
     base: Node
-    current_root: Node
     current_target: Node
     network: NeuralNetwork
 
     def __init__(self, network: NeuralNetwork):
         state = StateVector()
         network = network
-        self.base = Node(state=state)
-        self.current_root = self.base
-        self.current_target = self.current_root
+        self.base = Node(state=state)                 # Bottom of the MCTS Tree
+        self.current_target = self.base                 # A pseudo tree root
 
     def search(self):
         """Searches the existing tree and gets a node."""
 
         # Pick a leaf node - defines as current target
-        self._selection(self.current_root)
+        self.current_target = self._selection(self.current_target)
 
-        new_node = self._expansion()
+        if not self.current_target.get_is_terminal() and not self.current_target.get_is_expanded():
+            new_node = self._expansion()
 
-        self._simulation(new_node)
+        outcome = self._simulation(new_node)
 
         self._backpropogate(new_node)
 
-    def _selection(self, node: Node) -> None:
+    def _selection(self, current_node: Node) -> Node:
         """
         Upper Confidence Bound MAB traversal for MCTS, finds the bottom leaf node
         """
-        current_node = node
 
         if current_node.get_is_terminal():
             return current_node
@@ -49,25 +47,22 @@ class MCTS_Tree:
                 
                     current_node = highest_pick
                 else:
-                    return current_node
+                    return current_node      
 
-        return self.current_target        
-
-    def _expansion(self) -> bool:
+    def _expansion(self) -> Node:
 
         try:
-            self.current_target.expand_node()
-            return True
+            new_node = self.current_target.expand_node()
+            return new_node
         except:
-            return False
+            raise Exception("Could not expand node for some reason.")
 
 
     
-    def _simulation(self):
-
-        # Once I hit a lead node I will simulate it and store that data
-        self.network.predict(self.current_target)
-        pass
+    def _simulation(self, node_to_simulate: Node):
+        """Given a Node, predict the outcome of the game"""
+        outcome = self.network.predict(node_to_simulate)
+        return outcome
 
     def _backpropogate(self):
 
