@@ -1,0 +1,3 @@
+- Setup the simulation data structures
+- Write the backpropogation for the MCTS
+- Figure out when I'm going to pull data for the NN training
