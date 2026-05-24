@@ -1,0 +1,1 @@
+I borrowed the game from this guy: https://github.com/techwithtim/Python-Checkers/tree/master

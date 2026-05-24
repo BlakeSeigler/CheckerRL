@@ -5,27 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "common",
     "numpy>=2.3.2",
     "torch>=2.8.0",
+    "pygame",
 ]
-
-[tool.uv.workspace]
-members = [
-    "src/common",
-    "src/model_based_planner",
-    "src/MTCS",
-]
-
-[tool.uv.sources]
-common = { workspace = true }
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build]
-source-directory = "src"
-
-[tool.hatch.build.targets.wheel]
-packages = ["model_based_planner", "common", "MTCS"]
