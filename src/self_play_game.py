@@ -11,11 +11,13 @@ def self_play_game(network):
     game = Game(WIN)
 
     training_data = []
+    move_number = 0
 
     while run:
 
         mtcs = MTCS(game.copy(), network)
         first_move = True
+        skipped = None
 
         clock.tick(FPS)
         
@@ -27,18 +29,21 @@ def self_play_game(network):
             mtcs.initialize_tree(game)
             first_move = False
 
-        # Infer the next move with the MTCS algorithm
-        inferenced_move = mtcs.predict(game)
+        # Infer the next move with the MTCS algorithm -- these are back in 8x8 format
+        inferenced_from, inferenced_to = mtcs.predict(game)
 
         # Add to the training data
-        dist = ...     # TODO: Add the distribution
+        dist = mtcs.calculate_distribution(game, move_number)
         data = (format_data(game), dist, game.turn, 0)  # encoded state, distribution, turn, value
         training_data.append(data)
 
         # Make the move
-        game.make_move(inferenced_move)
+        # potentally if and break if the move is a possible double jump -- simply make sure not to iterate the move number
+        game.make_move(inferenced_from, inferenced_to, skipped=skipped) 
 
         game.update()   # does this just update the GUI?
+
+        move_number += 1
     
     pygame.quit()
    
