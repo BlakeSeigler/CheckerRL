@@ -1,4 +1,7 @@
-def format_data(game, color):
+def format_data(game, color): 
+    """
+    64 spot long vector
+    """
     data_vector = []
     board_data = game.board.board
     for row in board_data:
@@ -11,8 +14,7 @@ def format_data(game, color):
             elif spot.king:
                 data_vector.append(2)
 
-            if spot.color == color:
-                data_vector.append(1)
-            else:
-                data_vector.append(-1)
+            if spot.color != color:  # If the opposite side, make it negative
+                data_vector[-1] = data_vector[-1] * -1
+
     return data_vector

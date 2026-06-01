@@ -68,7 +68,11 @@ class Board:
         
         return None 
     
-    def get_valid_moves(self, piece):
+    def get_valid_piece_moves(self, piece):
+        """
+        Returns Dict[tuple[int, int], list[Piece]]
+        
+        """
         moves = {}
         left = piece.col - 1
         right = piece.col + 1

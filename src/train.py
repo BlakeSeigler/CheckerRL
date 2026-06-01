@@ -2,11 +2,11 @@ from self_play_game import self_play_game
 from collections import deque
 import multiprocessing as mp
 from nn import NN
+import torch
 
-def train_model(training_data):
+def train_model():
     training = True
     BUFFER_SIZE_THRESHOLD = 1000
-    TRAINING_STEPS_PER_BUFFER
     training_buffer = deque(maxlen=BUFFER_SIZE_THRESHOLD)
     network = NN()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -66,3 +66,5 @@ def train_model(training_data):
 
 def save_model(network, i):
     ...
+
+train_model()

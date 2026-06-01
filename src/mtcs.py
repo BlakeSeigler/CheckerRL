@@ -1,6 +1,10 @@
+from unittest import skip
 import torch
 from data import format_data
 from nn import NN
+import random, math
+import copy
+import numpy as np
 
 class MTCS:
     """
@@ -16,11 +20,13 @@ class MTCS:
         self.TEMP_CHANGE_MOVE = 30
 
     def initialize_tree(self, game):
-        for move in game.get_valid_moves("WHITE"):
+        """
+        Maybe this should just be in init but whateva
+        """
+        for move in game.get_valid_game_moves("WHITE"): #TODO this needs to be all the moves for all the pieces
             from_row, from_col, to_row, to_col, skipped = move
-            formatted_move = self.format_moves(from_row, from_col, to_row, to_col)
             game.make_move(from_row, from_col, to_row, to_col, skipped)
-            leaf = Node(state=game, color="RED", parent=self.root, change=formatted_move)
+            leaf = Node(state=copy.copy(game), color="RED", parent=self.root, change=((from_row, from_col), (to_row, to_col)), skipped=skipped)
             self.root.leaves.append(leaf)
 
         for leaf in self.root.leaves:
@@ -35,11 +41,11 @@ class MTCS:
         """
         Uses the UCT with NN to select the best node, stops at terminal or unexplored nodes
         
-        I actually think this function is implemented wrong and does the build out when taht should be seperate...whateva
+        I actually think this function is implemented wrong and does the build out when that should be seperate...whateva
         """
         current_node = self.root
 
-        if current_node.unexpanded_moves != []  # if not fully expanded
+        if current_node.unexpanded_moves != []:  # if not fully expanded
             new_node = self.expansion(current_node)
             result = self.simulation(new_node)
             self.backpropagation(new_node, result)
@@ -68,12 +74,20 @@ class MTCS:
         """
         current_node = node
         while current_node.get_state().winner() == None:
+
+            # Get the moves from the new location
             state = current_node.get_state()
-            moves = state.get_valid_moves(state.turn)
-            move = moves[random.randint(0, len(moves) - 1)]
-            from_row, from_col, to_row, to_col, skipped = move
+            (from_row, from_col) = state.change[1]
+            moves =  state.board.get_valid_piece_moves(state.board[from_row*8 + from_col])
+
+            # Pick a move at random and make a new node
+            move = random.choice(list(moves.items()))
+            (to_row, to_col), skipped = move
             state.make_move(from_row, from_col, to_row, to_col, skipped)
-            current_node = Node(state=state, color=state.turn, parent=current_node)
+            change = ((from_row, from_col), (to_row, to_col))
+            current_node = Node(state=copy.copy(state), color=state.turn, parent=current_node, change=change, skipped=skipped)
+
+        
         value = 1 if current_node.get_state().winner() == node.get_turn() else -1
         node.update_value(value)
         node.update_visits()
@@ -93,7 +107,7 @@ class MTCS:
             parent.update_value(value)
             parent.update_visits()
 
-    def calculate_UBT(self, node: Node):
+    def calculate_UBT(self, node):
         encoded_state = format_data(node.get_state())
         value = self.net.value_forward(encoded_state)
         selection = self.net.selection_forward(encoded_state)
@@ -105,57 +119,48 @@ class MTCS:
         
         # Build out the tree 
         for i in range(self.num_simulations):
-            selected_node = self.selection(game)
+            self.selection(game)
         
         for node in self.root.leaves:
             if node.get_value() > best_value:
                 best_value = node.get_value()
                 best_node = node
         
-        deformatted_move = self.deformat_moves(best_node.change[0][0], best_node.change[0][1], best_node.change[1][0], best_node.change[1][1])
-        return deformatted_move
+        (from_row, from_col), (to_row, to_col) = best_node.change
+        return from_row, from_col, to_row, to_col, best_node.skipped
 
     def calculate_distribution(self, game, move_number: int):
+        """
+        Policy distribution.  
+        """
 
         # first get the distribution
-        distribution = np.zeros(1024)
+        distribution = np.zeros(4096)
         for leaf in self.root.leaves:
-            from_idx = leaf.change[0] * 4 + leaf.change[1]
-            to_idx = leaf.change[2] * 4 + leaf.change[3]
-            distribution[from_idx * 32 + to_idx] = leaf.visits
+            from_idx = leaf.change[0][0] * 8 + leaf.change[0][1]
+            to_idx = leaf.change[1][0] * 8 + leaf.change[1][1]
+            distribution[from_idx * 64 + to_idx] = leaf.visits
 
         # change the distribution for both high and low temperature
         if move_number >= self.TEMP_CHANGE_MOVE:    # temperature of 1
             distribution = distribution / distribution.sum()
             return distribution
         else:   # temperature of 0
-            new_distribution = np.zeros(num_actions, dtype=np.float32)
-            new_distribution[index(max(distribution))] = 1.0
+            new_distribution = np.zeros(4096, dtype=np.float32)
+            new_distribution[np.argmax(distribution)] = 1.0
             return new_distribution
 
-    def format_moves(self, from_row, from_col, to_row, to_col):
-        """
-        Goes from the full board to the weird 4x8 formate I have in the readme
-        """
-        return ((from_row, from_col // 2), (to_row, to_col // 2))
-
-    def deformat_moves(self, from_row, from_col, to_row, to_col):
-        """
-        Goes from the weird 4x8 formate I have in the readme to the full board
-        """
-        return ((from_row, from_col * 2 + (from_row + 1) % 2),
-                (to_row,   to_col   * 2 + (to_row   + 1) % 2))
-
 class Node:
-    def __init__(self, game, color, parent, change):
+    def __init__(self, game, color, parent, change, skipped: list):
         self.turn = color
         self.state = game
-        self.unexpanded_moves = game.get_valid_moves(self.turn) 
+        self.unexpanded_moves = game.get_valid_game_moves(self.turn) 
         self.values = []
         self.visits = 0
         self.leaves = []
         self.parent = None
         self.change: tuple[tuple[int, int]] = change # the move that changed
+        self.skipped = skipped
 
     def get_value(self):
         return sum(self.values) / len(self.values)
@@ -172,6 +177,6 @@ class Node:
     def get_turn(self):
         return self.turn
 
-    def expand(self, move: Node):
+    def expand(self, move):
         self.leaves.append(move)
         self.unexpanded_moves.remove(move)

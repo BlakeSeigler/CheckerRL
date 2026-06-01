@@ -1,6 +1,7 @@
 import pygame
 from .constants import RED, WHITE, BLUE, SQUARE_SIZE
 from checkers.board import Board
+from piece import Piece
 
 class Game:
     def __init__(self, win):
@@ -68,18 +69,6 @@ class Game:
         else:
             self.turn = RED
 
-    def get_valid_moves(self, color):
-        color_map = {"WHITE": WHITE, "RED": RED}
-        color = color_map.get(color, color)
-        moves = []
-        for row in self.board.board:
-            for piece in row:
-                if piece != 0 and piece.color == color:
-                    valid = self.board.get_valid_moves(piece)
-                    for (to_row, to_col), skipped in valid.items():
-                        moves.append((piece.row, piece.col, to_row, to_col, skipped))
-        return moves
-
     def get_data(self):
         return self.board.board
 
@@ -91,7 +80,7 @@ class Game:
                     valid_pieces.append(piece)
         return valid_pieces
 
-    def make_move(self, from_row, from_col, to_row, to_col, skipped):
+    def make_move(self, from_row, from_col, to_row, to_col, skipped: list):
         self.selected = self.board.get_piece(from_row, from_col)
         piece = self.board.get_piece(to_row, to_col)
         if self.selected and piece == 0:
@@ -101,3 +90,11 @@ class Game:
             self.change_turn()
             return True
         return False
+
+    def get_valid_game_moves(self, turn: str):
+        pieces = self.get_valid_pieces(turn)
+        moves: list[tuple[  tuple[int], dict[tuple[int], list[Piece] ]]] = [] # (from_row, from_col), {(to_row, to_col): [skipped pieces]}
+        for piece in pieces:
+            piece_moves = self.board.get_valid_moves(piece)
+            moves.append(((piece.row, piece.col), piece_moves))
+        return moves
