@@ -3,6 +3,7 @@ from checkers.constants import WIDTH, HEIGHT, SQUARE_SIZE, RED
 from checkers.game import Game
 from mtcs import MTCS
 from data import format_data
+import copy
 
 
 
@@ -17,7 +18,7 @@ def self_play_game(network):
 
     while run:
 
-        mtcs = MTCS(game.copy(), network)
+        mtcs = MTCS(game, network)
         
         if game.winner() != None:
                 print(game.winner())
@@ -31,7 +32,7 @@ def self_play_game(network):
 
         # Add to the training data
         dist = mtcs.calculate_distribution(game, move_number)
-        data = (format_data(game), dist, game.turn, 0)  # encoded state, distribution, turn, value
+        data = [format_data(game), dist, game.turn, 0]  # encoded state, distribution, turn, value
         training_data.append(data)
 
         # Make the move

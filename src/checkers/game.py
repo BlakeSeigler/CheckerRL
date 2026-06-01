@@ -91,9 +91,9 @@ class Game:
             return True
         return False
 
-    def get_valid_game_moves(self, turn: str):
+    def get_valid_game_moves(self, turn):
         pieces = self.get_valid_pieces(turn)
-        moves: list[tuple[  tuple[int], dict[tuple[int], list[Piece] ]]] = [] # (from_row, from_col), {(to_row, to_col): [skipped pieces]}
+        moves: list[tuple[  tuple[int], dict[tuple[int], list[Piece] ]]] = [] # a list of ( (from_row, from_col), {(to_row, to_col): [skipped pieces]} )
         for piece in pieces:
             piece_moves = self.board.get_valid_moves(piece)
             moves.append(((piece.row, piece.col), piece_moves))

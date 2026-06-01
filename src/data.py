@@ -14,7 +14,8 @@ def format_data(game, color):
             elif spot.king:
                 data_vector.append(2)
 
-            if spot.color != color:  # If the opposite side, make it negative
-                data_vector[-1] = data_vector[-1] * -1
+            if spot.color:
+                if spot.color != color:  # If the opposite side, make it negative
+                    data_vector[-1] = data_vector[-1] * -1
 
     return data_vector

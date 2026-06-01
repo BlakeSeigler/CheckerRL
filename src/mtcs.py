@@ -5,6 +5,7 @@ from nn import NN
 import random, math
 import copy
 import numpy as np
+from checkers.constants import RED, WHITE
 
 class MTCS:
     """
@@ -14,7 +15,7 @@ class MTCS:
     
     """
     def __init__(self, Game, NeuralNetwork):
-        self.root = Node(game=Game, color="WHITE", parent=None, change=(None, None))
+        self.root = Node(game=Game, color=WHITE, parent=None, change=(None, None))
         self.net = NeuralNetwork
         self.num_simulations = 10000
         self.TEMP_CHANGE_MOVE = 30
@@ -23,11 +24,12 @@ class MTCS:
         """
         Maybe this should just be in init but whateva
         """
-        for move in game.get_valid_game_moves("WHITE"): #TODO this needs to be all the moves for all the pieces
-            from_row, from_col, to_row, to_col, skipped = move
-            game.make_move(from_row, from_col, to_row, to_col, skipped)
-            leaf = Node(state=copy.copy(game), color="RED", parent=self.root, change=((from_row, from_col), (to_row, to_col)), skipped=skipped)
-            self.root.leaves.append(leaf)
+        for (from_row, from_col), piece_moves in game.get_valid_game_moves(WHITE):
+            for (to_row, to_col), skipped in piece_moves.items():
+                this_game = copy.copy(game)
+                this_game.make_move(from_row, from_col, to_row, to_col, skipped)
+                leaf = Node(state=this_game, color=RED, parent=self.root, change=((from_row, from_col), (to_row, to_col)), skipped=skipped)
+                self.root.leaves.append(leaf)
 
         for leaf in self.root.leaves:
             value = self.simulation(leaf)
@@ -53,7 +55,7 @@ class MTCS:
         if current_node.leaves == []:
             value = current_node.get_value()
             current_node.update_visits()
-            current_node.backpropagation(value)
+            self.backpropagation(current_node, value)
         else:
             scores = [(node, self.calculate_UBT(node)) for node in current_node.leaves]
             best_node = max(scores, key=lambda x: x[1])[0]
@@ -62,7 +64,9 @@ class MTCS:
     def expansion(self, node):
         """Expands the node by adding new child nodes"""
         num_of_unexpanded = len(node.unexpanded_moves)
-        new_leaf = node.unexpanded_moves.pop(random.randint(0, num_of_unexpanded - 1))
+        new_leaf_move = node.unexpanded_moves.pop(random.randint(0, num_of_unexpanded - 1))
+        game = copy.copy(node.state).make_move()
+        new_leaf = Node(game=game, color=)
         node.leaves.append(new_leaf)
         return new_leaf
 
@@ -78,7 +82,7 @@ class MTCS:
             # Get the moves from the new location
             state = current_node.get_state()
             (from_row, from_col) = state.change[1]
-            moves =  state.board.get_valid_piece_moves(state.board[from_row*8 + from_col])
+            moves =  state.board.get_valid_piece_moves(state.board.get_piece(from_row, from_col))
 
             # Pick a move at random and make a new node
             move = random.choice(list(moves.items()))
@@ -108,7 +112,7 @@ class MTCS:
             parent.update_visits()
 
     def calculate_UBT(self, node):
-        encoded_state = format_data(node.get_state())
+        encoded_state = format_data(node.state, node.turn)
         value = self.net.value_forward(encoded_state)
         selection = self.net.selection_forward(encoded_state)
         
@@ -121,13 +125,14 @@ class MTCS:
         for i in range(self.num_simulations):
             self.selection(game)
         
+        best_value = -1e9
         for node in self.root.leaves:
             if node.get_value() > best_value:
                 best_value = node.get_value()
                 best_node = node
         
         (from_row, from_col), (to_row, to_col) = best_node.change
-        return from_row, from_col, to_row, to_col, best_node.skipped
+        return (from_row, from_col), (to_row, to_col), best_node.skipped
 
     def calculate_distribution(self, game, move_number: int):
         """
@@ -151,14 +156,14 @@ class MTCS:
             return new_distribution
 
 class Node:
-    def __init__(self, game, color, parent, change, skipped: list):
+    def __init__(self, game, color, parent, change, skipped: list=None):
         self.turn = color
         self.state = game
         self.unexpanded_moves = game.get_valid_game_moves(self.turn) 
         self.values = []
         self.visits = 0
         self.leaves = []
-        self.parent = None
+        self.parent = parent
         self.change: tuple[tuple[int, int]] = change # the move that changed
         self.skipped = skipped
 
