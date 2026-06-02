@@ -11,7 +11,8 @@ def self_play_game(network):
     # need to add the training loop setup
 
     run = True
-    game = Game("WIN")
+    win = pygame.display.set_mode((WIDTH, HEIGHT))
+    game = Game(win)
 
     training_data = []
     move_number = 0
@@ -32,7 +33,7 @@ def self_play_game(network):
 
         # Add to the training data
         dist = mtcs.calculate_distribution(game, move_number)
-        data = [format_data(game), dist, game.turn, 0]  # encoded state, distribution, turn, value
+        data = [format_data(game, game.turn), dist, game.turn, 0]  # encoded state, distribution, turn, value
         training_data.append(data)
 
         # Make the move

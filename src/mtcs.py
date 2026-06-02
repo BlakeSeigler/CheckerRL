@@ -6,6 +6,8 @@ import random, math
 import copy
 import numpy as np
 from checkers.constants import RED, WHITE
+from checkers.game import Game
+from checkers.piece import Piece
 
 class MTCS:
     """
@@ -15,7 +17,7 @@ class MTCS:
     
     """
     def __init__(self, Game, NeuralNetwork):
-        self.root = Node(game=Game, color=WHITE, parent=None, change=(None, None))
+        self.root = Node(game=Game, color=WHITE, parent=None, change=(None, None), skipped=[])
         self.net = NeuralNetwork
         self.num_simulations = 10000
         self.TEMP_CHANGE_MOVE = 30
@@ -32,9 +34,7 @@ class MTCS:
                 self.root.leaves.append(leaf)
 
         for leaf in self.root.leaves:
-            value = self.simulation(leaf)
-            leaf.update_value(value)
-            leaf.update_visits()
+            self.simulation(leaf)
         
         return
 
@@ -64,9 +64,10 @@ class MTCS:
     def expansion(self, node):
         """Expands the node by adding new child nodes"""
         num_of_unexpanded = len(node.unexpanded_moves)
-        new_leaf_move = node.unexpanded_moves.pop(random.randint(0, num_of_unexpanded - 1))
-        game = copy.copy(node.state).make_move()
-        new_leaf = Node(game=game, color=)
+        (new_leaf_from_row, new_leaf_from_col), piece_moves = node.unexpanded_moves.pop(random.randint(0, num_of_unexpanded - 1))                            # picks a random piece
+        (new_leaf_to_row, new_leaf_to_col), new_leaf_skipped = random.choice(list(piece_moves.items()))                                                 # picks a random move for the piece
+        game = copy.copy(node.state).make_move(new_leaf_from_row, new_leaf_from_col, new_leaf_to_row, new_leaf_to_col, skipped=new_leaf_skipped)
+        new_leaf = Node(game=game, color=game.turn, parent=node, change=((new_leaf_from_row, new_leaf_from_col), (new_leaf_to_row, new_leaf_to_col)), skipped=new_leaf_skipped)
         node.leaves.append(new_leaf)
         return new_leaf
 
@@ -79,23 +80,25 @@ class MTCS:
         current_node = node
         while current_node.get_state().winner() == None:
 
-            # Get the moves from the new location
-            state = current_node.get_state()
-            (from_row, from_col) = state.change[1]
-            moves =  state.board.get_valid_piece_moves(state.board.get_piece(from_row, from_col))
+            # Get the moves from the new location 
+            pieces = current_node.get_state().get_valid_pieces(current_node.get_state().turn)
+            piece = random.choice(pieces)
+            moves =  current_node.get_state().board.get_valid_piece_moves(current_node.get_state().board.get_piece(piece[0][0], piece[0][1])) 
 
             # Pick a move at random and make a new node
             move = random.choice(list(moves.items()))
             (to_row, to_col), skipped = move
-            state.make_move(from_row, from_col, to_row, to_col, skipped)
+            from_row, from_col = piece[0][0], piece[0][1]
+            new_state = copy.copy(current_node.get_state())
+            new_state.make_move(from_row, from_col, to_row, to_col, skipped)
             change = ((from_row, from_col), (to_row, to_col))
-            current_node = Node(state=copy.copy(state), color=state.turn, parent=current_node, change=change, skipped=skipped)
+            current_node = Node(game=new_state, color=new_state.turn, parent=current_node, change=change, skipped=skipped)
 
-        
-        value = 1 if current_node.get_state().winner() == node.get_turn() else -1
+        value = 1 if current_node.get_state().winner() == node.get_turn() else -1 #TODO also there is no end here if the game just goes on forever, might need to cap and draw -- that could also lead to a highly sparse endgame so you might need to create some incentive in some way
         node.update_value(value)
         node.update_visits()
         return value
+
 
     def backpropagation(self, node, value):
         """
@@ -108,8 +111,7 @@ class MTCS:
             parent.get_value()
             self.backpropagation(parent, value)
         else:
-            parent.update_value(value)
-            parent.update_visits()
+            return
 
     def calculate_UBT(self, node):
         encoded_state = format_data(node.state, node.turn)
@@ -159,7 +161,7 @@ class Node:
     def __init__(self, game, color, parent, change, skipped: list=None):
         self.turn = color
         self.state = game
-        self.unexpanded_moves = game.get_valid_game_moves(self.turn) 
+        self.unexpanded_moves = game.get_valid_game_moves(self.turn)  # a list of ( (from_row, from_col), {(to_row, to_col): [skipped pieces]} )
         self.values = []
         self.visits = 0
         self.leaves = []
