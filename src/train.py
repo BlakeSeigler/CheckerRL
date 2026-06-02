@@ -3,6 +3,7 @@ from collections import deque
 import multiprocessing as mp
 from nn import NN
 import torch
+import signal
 
 def train_model():
     training = True
@@ -31,7 +32,7 @@ def train_model():
             turns = torch.tensor(turns).to(device)
             values = torch.tensor(values).to(device)
 
-        if len(buffer) < BUFFER_SIZE_THRESHOLD: # skip training until buffer is filled
+        if len(training_buffer) < BUFFER_SIZE_THRESHOLD: # skip training until buffer is filled
             continue
 
         # Train
@@ -60,7 +61,7 @@ def train_model():
         # need a way to stop training without deleteting shit.
         if ...: # or ctrl+c lmao
             break
-    
+
     # save one last time
     return
 
