@@ -1,7 +1,7 @@
 import pygame
 from .constants import RED, WHITE, BLUE, SQUARE_SIZE
 from checkers.board import Board
-from piece import Piece
+from .piece import Piece
 
 class Game:
     def __init__(self, win):
@@ -95,6 +95,6 @@ class Game:
         pieces = self.get_valid_pieces(turn)
         moves: list[tuple[  tuple[int], dict[tuple[int], list[Piece] ]]] = [] # a list of ( (from_row, from_col), {(to_row, to_col): [skipped pieces]} )
         for piece in pieces:
-            piece_moves = self.board.get_valid_moves(piece)
+            piece_moves = self.board.get_valid_piece_moves(piece)
             moves.append(((piece.row, piece.col), piece_moves))
         return moves

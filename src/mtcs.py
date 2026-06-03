@@ -30,7 +30,7 @@ class MTCS:
             for (to_row, to_col), skipped in piece_moves.items():
                 this_game = copy.copy(game)
                 this_game.make_move(from_row, from_col, to_row, to_col, skipped)
-                leaf = Node(state=this_game, color=RED, parent=self.root, change=((from_row, from_col), (to_row, to_col)), skipped=skipped)
+                leaf = Node(game=this_game, color=RED, parent=self.root, change=((from_row, from_col), (to_row, to_col)), skipped=skipped)
                 self.root.leaves.append(leaf)
 
         for leaf in self.root.leaves:
@@ -64,8 +64,16 @@ class MTCS:
     def expansion(self, node):
         """Expands the node by adding new child nodes"""
         num_of_unexpanded = len(node.unexpanded_moves)
-        (new_leaf_from_row, new_leaf_from_col), piece_moves = node.unexpanded_moves.pop(random.randint(0, num_of_unexpanded - 1))                            # picks a random piece
-        (new_leaf_to_row, new_leaf_to_col), new_leaf_skipped = random.choice(list(piece_moves.items()))                                                 # picks a random move for the piece
+
+        selected=False
+        while selected == False:
+            try:   #TODO still working on this here. Do these bottom two lines work properly? I feel like they don't
+                (new_leaf_from_row, new_leaf_from_col), piece_moves = node.unexpanded_moves.pop(random.randint(0, num_of_unexpanded - 1))                            # picks a random piece
+                (new_leaf_to_row, new_leaf_to_col), new_leaf_skipped = random.choice(list(piece_moves.items()))       
+                selected=True
+            except:
+                continue             
+                                         # picks a random move for the piece
         game = copy.copy(node.state).make_move(new_leaf_from_row, new_leaf_from_col, new_leaf_to_row, new_leaf_to_col, skipped=new_leaf_skipped)
         new_leaf = Node(game=game, color=game.turn, parent=node, change=((new_leaf_from_row, new_leaf_from_col), (new_leaf_to_row, new_leaf_to_col)), skipped=new_leaf_skipped)
         node.leaves.append(new_leaf)
@@ -80,15 +88,20 @@ class MTCS:
         current_node = node
         while current_node.get_state().winner() == None:
 
-            # Get the moves from the new location 
-            pieces = current_node.get_state().get_valid_pieces(current_node.get_state().turn)
-            piece = random.choice(pieces)
-            moves =  current_node.get_state().board.get_valid_piece_moves(current_node.get_state().board.get_piece(piece[0][0], piece[0][1])) 
-
+            # Get the moves from the new location
             # Pick a move at random and make a new node
-            move = random.choice(list(moves.items()))
+            pieces = current_node.get_state().get_valid_pieces(current_node.get_state().turn)
+            move = None
+            while move == None:         #TODO Does this while loop leave open the possibility of a stalemate looping this?
+                piece = random.choice(pieces)
+                moves =  current_node.get_state().board.get_valid_piece_moves(piece) 
+                try:
+                    move = random.choice(list(moves.items()))
+                except: 
+                    continue
+
             (to_row, to_col), skipped = move
-            from_row, from_col = piece[0][0], piece[0][1]
+            from_row, from_col = piece.row, piece.col
             new_state = copy.copy(current_node.get_state())
             new_state.make_move(from_row, from_col, to_row, to_col, skipped)
             change = ((from_row, from_col), (to_row, to_col))
