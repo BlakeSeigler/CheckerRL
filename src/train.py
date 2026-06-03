@@ -13,7 +13,8 @@ def train_model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     optimizer = torch.optim.Adam(network.parameters(), lr=0.001) # the standard fr
-    loss_fn = torch.nn.MSELoss()  # mean squared error loss -- basic fr
+    value_loss_fn = torch.nn.MSELoss()  # mean squared error loss 
+    policy_loss_fn = torch.nn.CrossEntropyLoss()  # cross entropy loss 
 
     i = 0 
     while training:
@@ -43,8 +44,8 @@ def train_model():
             pred_value = network.value_forward(states[i])
             pred_dist = network.selection_forward(states[i])
 
-            value_loss = loss_fn(pred_value, values[i])
-            policy_loss = loss_fn(pred_dist, dists[i])          #TODO this isn't right, this should be softmax plus some other stuff -- understand why
+            value_loss = value_loss_fn(pred_value, values[i])
+            policy_loss = policy_loss_fn(pred_dist, dists[i])
 
             loss = value_loss + policy_loss
             optimizer.zero_grad()     # set to 0
@@ -55,17 +56,10 @@ def train_model():
             value_losses.append(value_loss.item())
 
         # Every 20 games/training loops, we will save the model
-        if i % 20 == 0:
-            ... # save the model here
-
-        # need a way to stop training without deleteting shit.
-        if ...: # or ctrl+c lmao
-            break
+        if i % 1000 == 0:
+            torch.save(network.state_dict(), f"models/network_{i}.pth")
 
     # save one last time
     return
-
-def save_model(network, i):
-    ...
 
 train_model()
