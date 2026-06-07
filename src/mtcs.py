@@ -2,6 +2,7 @@ from data import format_data
 import math
 import copy
 import numpy as np
+from tqdm import tqdm
 from checkers.constants import WHITE
 
 class MTCS:
@@ -92,8 +93,8 @@ class MTCS:
 
     def predict(self):
         
-        # Build out the tree 
-        for i in range(self.num_simulations):
+        # Build out the tree
+        for i in tqdm(range(self.num_simulations), desc="MCTS simulations", leave=False):
             self.selection(self.root)
 
         # Select the best move -- this is the move with highest N -- high value and trustworthiness or both baked into N

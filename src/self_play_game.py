@@ -3,6 +3,7 @@ from checkers.constants import WIDTH, HEIGHT, SQUARE_SIZE, RED
 from checkers.game import Game
 from mtcs import MTCS
 from data import format_data
+from tqdm import tqdm
 import copy
 
 
@@ -17,6 +18,7 @@ def self_play_game(network):
     training_data = []
     move_number = 0
 
+    move_bar = tqdm(total=300, desc="Game moves", leave=False)
     while run:           # per move in a game
 
         mtcs = MTCS(game, network)
@@ -30,19 +32,22 @@ def self_play_game(network):
         training_data.append(data)
 
         # Make the move
-        game.make_move(from_row, from_col, to_row, to_col, skipped) 
+        game.make_move(from_row, from_col, to_row, to_col, skipped)
 
 
         move_number += 1
+        move_bar.update(1)
         if move_number > 300:
             break
 
         if game.winner() != None:
+            move_bar.set_postfix(winner=game.winner())
             print(game.winner())
             run = False
 
+    move_bar.close()
     pygame.quit()
-   
+
     for data in training_data: # TODO this does not account for timeout draws rn
         data[3] = 1 if game.winner() == data[2] else -1
 
