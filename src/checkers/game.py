@@ -4,7 +4,7 @@ from checkers.board import Board
 from .piece import Piece
 
 class Game:
-    def __init__(self, win):
+    def __init__(self, win=None):
         self._init()
         self.win = win
     

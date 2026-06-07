@@ -1,10 +1,7 @@
-import pygame
-from checkers.constants import WIDTH, HEIGHT, SQUARE_SIZE, RED
 from checkers.game import Game
 from mtcs import MTCS
 from data import format_data
 from tqdm import tqdm
-import copy
 
 
 
@@ -12,8 +9,7 @@ def self_play_game(network):
     # need to add the training loop setup
 
     run = True
-    win = pygame.display.set_mode((WIDTH, HEIGHT))
-    game = Game(win)
+    game = Game()
 
     training_data = []
     move_number = 0
@@ -46,7 +42,6 @@ def self_play_game(network):
             run = False
 
     move_bar.close()
-    pygame.quit()
 
     for data in training_data: # TODO this does not account for timeout draws rn
         data[3] = 1 if game.winner() == data[2] else -1

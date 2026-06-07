@@ -15,7 +15,7 @@ class MTCS:
     def __init__(self, Game, NeuralNetwork):
         self.root = Node(game=Game, color=WHITE, parent=None, change=(None, None), skipped=[])
         self.net = NeuralNetwork
-        self.num_simulations = 10000
+        self.num_simulations = 500
         self.TEMP_CHANGE_MOVE = 30
         self.exploratory_term = 1                       # a term that controls exploration weight 
         
@@ -172,7 +172,7 @@ class Node:
             (fx, fy), destinations = move
         
             for (tx, ty), skipped in destinations.items():
-                new_game = copy.copy(self.state)
+                new_game = copy.deepcopy(self.state)
                 new_game.make_move(fx, fy, tx, ty, skipped)
                 self.children.append(Node(
                     game=new_game,
