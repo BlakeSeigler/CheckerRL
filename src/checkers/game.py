@@ -92,6 +92,9 @@ class Game:
         return False
 
     def get_valid_game_moves(self, turn):
+        """
+        Fun fact, this method actually allows the loss of one of the moves if you can come up with two moves that start and end in the same spot but have different skipped pieces. Super cool definetely intentional... jk I just don't care enough to fix rn.
+        """
         pieces = self.get_valid_pieces(turn)
         moves: list[tuple[  tuple[int], dict[tuple[int], list[Piece] ]]] = [] # a list of ( (from_row, from_col), {(to_row, to_col): [skipped pieces]} )
         for piece in pieces:

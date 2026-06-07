@@ -57,8 +57,8 @@ class MTCS:
             current_node.update_visits()
             self.backpropagation(current_node, value)
         else:
-            scores = [(node, self.calculate_UBT(node)) for node in current_node.leaves]
-            best_node = max(scores, key=lambda x: x[1])[0]
+            nodes_and_scores = [(node, self.calculate_UBT(node)) for node in current_node.leaves]
+            best_node = max(nodes_and_scores, key=lambda x: x[1])[0]
             self.selection(best_node)
 
     def expansion(self, node):
@@ -68,13 +68,15 @@ class MTCS:
         selected=False
         while selected == False:
             try:   #TODO still working on this here. Do these bottom two lines work properly? I feel like they don't
-                (new_leaf_from_row, new_leaf_from_col), piece_moves = node.unexpanded_moves.pop(random.randint(0, num_of_unexpanded - 1))                            # picks a random piece
+                (new_leaf_from_row, new_leaf_from_col), piece_moves = node.unexpanded_moves[(random.randint(0, num_of_unexpanded - 1))]                            # picks a random piece
                 (new_leaf_to_row, new_leaf_to_col), new_leaf_skipped = random.choice(list(piece_moves.items()))       
                 selected=True
-            except:
+            except: 
                 continue             
-                                         # picks a random move for the piece
-        game = copy.copy(node.state).make_move(new_leaf_from_row, new_leaf_from_col, new_leaf_to_row, new_leaf_to_col, skipped=new_leaf_skipped)
+        
+        # with move, make the game
+        game = copy.copy(node.state)
+        game.make_move(new_leaf_from_row, new_leaf_from_col, new_leaf_to_row, new_leaf_to_col, skipped=new_leaf_skipped)
         new_leaf = Node(game=game, color=game.turn, parent=node, change=((new_leaf_from_row, new_leaf_from_col), (new_leaf_to_row, new_leaf_to_col)), skipped=new_leaf_skipped)
         node.leaves.append(new_leaf)
         return new_leaf

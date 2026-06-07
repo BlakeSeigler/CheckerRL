@@ -1,3 +1,5 @@
+import torch
+
 def format_data(game, color): 
     """
     64 spot long vector
@@ -17,4 +19,4 @@ def format_data(game, color):
             if spot != 0 and spot.color != color:  # If the opposite side, make it negative
                 data_vector[-1] = data_vector[-1] * -1
 
-    return data_vector
+    return torch.tensor(data_vector,  dtype=torch.float32)
