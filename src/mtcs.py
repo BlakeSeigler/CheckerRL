@@ -147,8 +147,9 @@ class Node:
         self.expanded=False
         self.terminal=False
 
-        if game.winner():    # TODO doesn't account for draw
-            self.terminal=True
+        has_moves = any(destinations for _, destinations in self.unexpanded_moves)
+        if game.winner() or not has_moves:   # winner/loser or stalemate
+            self.terminal = True
 
     def get_value(self):
         return sum(self.values) / len(self.values)

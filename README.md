@@ -10,5 +10,6 @@ Is a heuristic search algorithm, not inherently RL but can be made that way if w
 
 
 TODO
-- training loop
-- did I handle double junmps properly
+- make faster
+- build a testing rig
+- 
