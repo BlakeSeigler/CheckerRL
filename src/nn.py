@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 class NN(torch.nn.Module):
     def __init__(self):
@@ -9,8 +10,8 @@ class NN(torch.nn.Module):
         self.fc1 = torch.nn.Linear(self.hidden_size, self.hidden_size)
         self.fc2 = torch.nn.Linear(self.hidden_size, self.hidden_size)
 
-        self.value_head = torch.nn.Linear(self.hidden_size, 1024)  # 32 x 32 board. Not perfect but good enough
-        self.selection_head = torch.nn.Linear(self.hidden_size, 1024)
+        self.value_head = torch.nn.Linear(self.hidden_size, 1)
+        self.selection_head = torch.nn.Linear(self.hidden_size, 4096)
 
     def value_forward(self, x):
         x = torch.relu(self.encoder(x))

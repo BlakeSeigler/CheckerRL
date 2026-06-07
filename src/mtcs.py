@@ -21,98 +21,66 @@ class MTCS:
         self.net = NeuralNetwork
         self.num_simulations = 10000
         self.TEMP_CHANGE_MOVE = 30
-
-    def initialize_tree(self, game):
-        """
-        Maybe this should just be in init but whateva
-        """
-        for (from_row, from_col), piece_moves in game.get_valid_game_moves(WHITE):
-            for (to_row, to_col), skipped in piece_moves.items():
-                this_game = copy.copy(game)
-                this_game.make_move(from_row, from_col, to_row, to_col, skipped)
-                leaf = Node(game=this_game, color=RED, parent=self.root, change=((from_row, from_col), (to_row, to_col)), skipped=skipped)
-                self.root.leaves.append(leaf)
-
-        for leaf in self.root.leaves:
-            self.simulation(leaf)
+        self.exploratory_term = 1                       # a term that controls exploration weight 
         
-        return
+        # Initialize the first few nodes
+        self.simulation(self.root)
 
 
-    def selection(self, game):
+    def selection(self):
         """
-        Uses the UCT with NN to select the best node, stops at terminal or unexplored nodes
-        
-        I actually think this function is implemented wrong and does the build out when that should be seperate...whateva
+        Starting at root, go through the tree until we get to an...
+        - an unexpanded node
+        - a terminal node
+        if unexpanded, run the sim on it and backpropogate up. If terminal, then just backpropogate up
         """
+
         current_node = self.root
 
-        if current_node.unexpanded_moves != []:  # if not fully expanded
-            new_node = self.expansion(current_node)
-            result = self.simulation(new_node)
-            self.backpropagation(new_node, result)
-        
-        if current_node.leaves == []:
-            value = current_node.get_value()
-            current_node.update_visits()
-            self.backpropagation(current_node, value)
-        else:
-            nodes_and_scores = [(node, self.calculate_UBT(node)) for node in current_node.leaves]
-            best_node = max(nodes_and_scores, key=lambda x: x[1])[0]
-            self.selection(best_node)
+        if current_node.terminal is True:           # node is terminal
+            self.backpropagation(current_node, 1 if current_node.turn is current_node.state.winner() else -1)
 
-    def expansion(self, node):
-        """Expands the node by adding new child nodes"""
-        num_of_unexpanded = len(node.unexpanded_moves)
+        elif current_node.expanded is False:        # if not expanded/simmed, expand/sim and backpropogate up
+            self.simulation(current_node)
+            self.backpropagation(current_node)
+            current_node.expanded = True
 
-        selected=False
-        while selected == False:
-            try:   #TODO still working on this here. Do these bottom two lines work properly? I feel like they don't
-                (new_leaf_from_row, new_leaf_from_col), piece_moves = node.unexpanded_moves[(random.randint(0, num_of_unexpanded - 1))]                            # picks a random piece
-                (new_leaf_to_row, new_leaf_to_col), new_leaf_skipped = random.choice(list(piece_moves.items()))       
-                selected=True
-            except: 
-                continue             
+        else:               # expanded/simmed and not terminal, go down a child branch and select again
+            PUBT_weights = self.calculate_PUBT_weights(current_node)
+            best_node = max(PUBT_weights, key=lambda x: x[1])[0]
+            return self.selection(best_node)
+
+    def calculate_PUBT_weights(self, node) -> list[tuple]:
+        outputs=[]
+        priors = self.node.get_priors()
+        total_visits = node.visits
         
-        # with move, make the game
-        game = copy.copy(node.state)
-        game.make_move(new_leaf_from_row, new_leaf_from_col, new_leaf_to_row, new_leaf_to_col, skipped=new_leaf_skipped)
-        new_leaf = Node(game=game, color=game.turn, parent=node, change=((new_leaf_from_row, new_leaf_from_col), (new_leaf_to_row, new_leaf_to_col)), skipped=new_leaf_skipped)
-        node.leaves.append(new_leaf)
-        return new_leaf
+        for child in self.node.children: # make sure this works for expanded and unexpanded properly. 
+            (fx, fy), (tx, ty) = child.change
+            value = child.get_value()
+            prior = priors[(fx*8+fy)*64 + (tx*8 + ty)]
+            outputs.append((child, value + self.exploratory_term * prior * math.sqrt(math.log(total_visits) / (1 + child.visits)))) #TODO what happens when this is 0?
+        
+        return outputs  # returns a list of (node, output)
 
     def simulation(self, node):
         """
-        rollouts -- random playouts
-        takes in a node and returns the value of the node after going all the way down
-        returns the value of a terminal node based on the current nodes turn.
+        uses the NN to get a value for the position and updates visits -> unless the node is terminal then the value is known.
         """
-        current_node = node
-        while current_node.get_state().winner() == None:
+        game = node.state
+        color = game.turn
+        data = format_data(game, color)
 
-            # Get the moves from the new location
-            # Pick a move at random and make a new node
-            pieces = current_node.get_state().get_valid_pieces(current_node.get_state().turn)
-            move = None
-            while move == None:         #TODO Does this while loop leave open the possibility of a stalemate looping this?
-                piece = random.choice(pieces)
-                moves =  current_node.get_state().board.get_valid_piece_moves(piece) 
-                try:
-                    move = random.choice(list(moves.items()))
-                except: 
-                    continue
+        # calculate values
+        value = self.net.value_forward(data)
+        priors = self.selection_forward(data)
 
-            (to_row, to_col), skipped = move
-            from_row, from_col = piece.row, piece.col
-            new_state = copy.copy(current_node.get_state())
-            new_state.make_move(from_row, from_col, to_row, to_col, skipped)
-            change = ((from_row, from_col), (to_row, to_col))
-            current_node = Node(game=new_state, color=new_state.turn, parent=current_node, change=change, skipped=skipped)
+        # set the nodes values
+        node.expand()
+        node.set_value(value)
+        node.set_priors(priors)
 
-        value = 1 if current_node.get_state().winner() == node.get_turn() else -1 #TODO also there is no end here if the game just goes on forever, might need to cap and draw -- that could also lead to a highly sparse endgame so you might need to create some incentive in some way
-        node.update_value(value)
-        node.update_visits()
-        return value
+        return
 
 
     def backpropagation(self, node, value):
@@ -128,25 +96,18 @@ class MTCS:
         else:
             return
 
-    def calculate_UBT(self, node):
-        encoded_state = format_data(node.state, node.turn)
-        value = self.net.value_forward(encoded_state)
-        selection = self.net.selection_forward(encoded_state)
-        
-        output = value + selection * math.sqrt(math.log(node.parent.visits) / node.visits)  # not 100% sure if N is total parent or total overall
-        return output
-
-    def predict(self, game):
+    def predict(self):
         
         # Build out the tree 
         for i in range(self.num_simulations):
-            self.selection(game)
-        
-        best_value = -1e9
-        for node in self.root.leaves:
-            if node.get_value() > best_value:
-                best_value = node.get_value()
-                best_node = node
+            self.selection()
+
+        # Select the best move -- this is the move with highest N -- high value and trustworthiness or both baked into N
+        best_N = 0
+        best_node = None
+        for child in self.root.children:
+            if child.visits > best_N:
+                best_node = child
         
         (from_row, from_col), (to_row, to_col) = best_node.change
         return (from_row, from_col), (to_row, to_col), best_node.skipped
@@ -158,10 +119,10 @@ class MTCS:
 
         # first get the distribution
         distribution = np.zeros(4096)
-        for leaf in self.root.leaves:
-            from_idx = leaf.change[0][0] * 8 + leaf.change[0][1]
-            to_idx = leaf.change[1][0] * 8 + leaf.change[1][1]
-            distribution[from_idx * 64 + to_idx] = leaf.visits
+        for child in self.root.children:
+            from_idx = child.change[0][0] * 8 + child.change[0][1]
+            to_idx = child.change[1][0] * 8 + child.change[1][1]
+            distribution[from_idx * 64 + to_idx] = child.visits
 
         # change the distribution for both high and low temperature
         if move_number >= self.TEMP_CHANGE_MOVE:    # temperature of 1
@@ -172,6 +133,9 @@ class MTCS:
             new_distribution[np.argmax(distribution)] = 1.0
             return new_distribution
 
+
+
+
 class Node:
     def __init__(self, game, color, parent, change, skipped: list=None):
         self.turn = color
@@ -179,10 +143,16 @@ class Node:
         self.unexpanded_moves = game.get_valid_game_moves(self.turn)  # a list of ( (from_row, from_col), {(to_row, to_col): [skipped pieces]} )
         self.values = []
         self.visits = 0
-        self.leaves = []
+        self.children = None
         self.parent = parent
         self.change: tuple[tuple[int, int]] = change # the move that changed
         self.skipped = skipped
+        self.priors = None
+        self.expanded=False
+        self.terminal=False
+
+        if game.winner():    # TODO doesn't account for draw
+            self.terminal=True
 
     def get_value(self):
         return sum(self.values) / len(self.values)
@@ -193,12 +163,19 @@ class Node:
     def update_visits(self):
         self.visits += 1
 
-    def get_state(self):
-        return self.state
-        
-    def get_turn(self):
-        return self.turn
+    def set_priors(self, prior):
+        self.priors = prior
 
-    def expand(self, move):
-        self.leaves.append(move)
-        self.unexpanded_moves.remove(move)
+    def get_priors(self):
+        return self.priors
+
+    def expand(self):
+        self.children = []
+        for move in self.unexpanded_moves:
+            self.children.append(Node(
+                game=...,
+                color=...,
+                parent=self,
+                change=...,
+                skipped=...,
+            ))

@@ -17,19 +17,12 @@ def self_play_game(network):
     training_data = []
     move_number = 0
 
-    while run:
+    while run:           # per move in a game
 
         mtcs = MTCS(game, network)
-        
-        if game.winner() != None:
-                print(game.winner())
-                run = False
-
-        
-        mtcs.initialize_tree(game)
 
         # Infer the next move with the MTCS algorithm -- these are back in 8x8 format
-        (from_row, from_col), (to_row, to_col), skipped = mtcs.predict(game)
+        (from_row, from_col), (to_row, to_col), skipped = mtcs.predict()
 
         # Add to the training data
         dist = mtcs.calculate_distribution(game, move_number)
@@ -43,7 +36,11 @@ def self_play_game(network):
         move_number += 1
         if move_number > 300:
             break
-    
+
+        if game.winner() != None:
+            print(game.winner())
+            run = False
+
     pygame.quit()
    
     for data in training_data: # TODO this does not account for timeout draws rn
