@@ -1,11 +1,13 @@
 from self_play_game import self_play_game
 from collections import deque
-import multiprocessing as mp
 from nn import NN
 import torch
-import signal
+import os
+
+MODELS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models')
 
 def train_model():
+    os.makedirs(MODELS_DIR, exist_ok=True)
     training = True
     BUFFER_SIZE_THRESHOLD = 1000
     training_buffer = deque(maxlen=BUFFER_SIZE_THRESHOLD)
@@ -40,12 +42,11 @@ def train_model():
         network.train()
         policy_losses = []
         value_losses = []
-        for i in range(num_samples):
-            pred_value = network.value_forward(states[i])
-            pred_dist = network.selection_forward(states[i])
+        for j in range(num_samples):
+            pred_value, pred_dist = network.forward(states[j])
 
-            value_loss = value_loss_fn(pred_value, values[i])
-            policy_loss = policy_loss_fn(pred_dist, dists[i])
+            value_loss = value_loss_fn(pred_value, values[j])
+            policy_loss = policy_loss_fn(pred_dist, dists[j])
 
             loss = value_loss + policy_loss
             optimizer.zero_grad()     # set to 0
@@ -55,11 +56,15 @@ def train_model():
             policy_losses.append(policy_loss.item())
             value_losses.append(value_loss.item())
 
-        # Every 20 games/training loops, we will save the model
+        # Every 1000 games/training loops, we will save the model
         if i % 1000 == 0:
-            torch.save(network.state_dict(), f"models/network_{i}.pth")
+            torch.save(network.state_dict(), os.path.join(MODELS_DIR, f"network_{i}.pth"))
+
+        print(f"Finished Game {i}")
 
     # save one last time
+    torch.save(network.state_dict(), os.path.join(MODELS_DIR, "network_final.pth"))
     return
 
-train_model()
+if __name__ == "__main__":
+    train_model()

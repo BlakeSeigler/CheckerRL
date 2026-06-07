@@ -18,5 +18,5 @@ class NN(torch.nn.Module):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
         value = torch.tanh(self.value_head(x))         # tanh bounds between -1 and 1
-        priors = torch.softmax(self.selection_head(x))      # softmax makes these a probability distribution
+        priors = torch.softmax(self.selection_head(x), dim=-1)      # softmax makes these a probability distribution
         return value, priors

@@ -1,13 +1,8 @@
-from unittest import skip
-import torch
 from data import format_data
-from nn import NN
-import random, math
+import math
 import copy
 import numpy as np
-from checkers.constants import RED, WHITE
-from checkers.game import Game
-from checkers.piece import Piece
+from checkers.constants import WHITE
 
 class MTCS:
     """
@@ -27,7 +22,7 @@ class MTCS:
         self.simulation(self.root)
 
 
-    def selection(self):
+    def selection(self, current_node):
         """
         Starting at root, go through the tree until we get to an...
         - an unexpanded node
@@ -35,14 +30,14 @@ class MTCS:
         if unexpanded, run the sim on it and backpropogate up. If terminal, then just backpropogate up
         """
 
-        current_node = self.root
-
         if current_node.terminal is True:           # node is terminal
-            self.backpropagation(current_node, 1 if current_node.turn is current_node.state.winner() else -1)
+            current_node.update_visits()
+            self.backpropagation(current_node, 1 if current_node.turn == current_node.state.winner() else -1)
 
         elif current_node.expanded is False:        # if not expanded/simmed, expand/sim and backpropogate up
             self.simulation(current_node)
-            self.backpropagation(current_node)
+            current_node.update_visits()
+            self.backpropagation(current_node, current_node.get_value())
             current_node.expanded = True
 
         else:               # expanded/simmed and not terminal, go down a child branch and select again
@@ -52,10 +47,10 @@ class MTCS:
 
     def calculate_PUBT_weights(self, node) -> list[tuple]:
         outputs=[]
-        priors = self.node.get_priors()
+        priors = node.get_priors()
         total_visits = node.visits
         
-        for child in self.node.children: # make sure this works for expanded and unexpanded properly. 
+        for child in node.children: # make sure this works for expanded and unexpanded properly. 
             (fx, fy), (tx, ty) = child.change
             value = child.get_value()
             prior = priors[(fx*8+fy)*64 + (tx*8 + ty)]
@@ -76,7 +71,7 @@ class MTCS:
 
         # set the nodes values
         node.expand()
-        node.set_value(value)
+        node.values.append(value)
         node.set_priors(priors)
 
         return
@@ -99,7 +94,7 @@ class MTCS:
         
         # Build out the tree 
         for i in range(self.num_simulations):
-            self.selection()
+            self.selection(self.root)
 
         # Select the best move -- this is the move with highest N -- high value and trustworthiness or both baked into N
         best_N = 0
@@ -107,6 +102,7 @@ class MTCS:
         for child in self.root.children:
             if child.visits > best_N:
                 best_node = child
+                best_N = child.visits
         
         (from_row, from_col), (to_row, to_col) = best_node.change
         return (from_row, from_col), (to_row, to_col), best_node.skipped
@@ -140,7 +136,7 @@ class Node:
         self.turn = color
         self.state = game
         self.unexpanded_moves = game.get_valid_game_moves(self.turn)  # a list of ( (from_row, from_col), {(to_row, to_col): [skipped pieces]} )
-        self.values = []
+        self.values = [0]
         self.visits = 0
         self.children = None
         self.parent = parent
@@ -184,3 +180,4 @@ class Node:
                     change=((fx, fy), (tx, ty)),
                     skipped=skipped,
                 ))
+                

@@ -1,4 +1,5 @@
 import pygame
+import os
 
 WIDTH, HEIGHT = 800, 800
 ROWS, COLS = 8, 8
@@ -11,4 +12,5 @@ BLACK = (0, 0, 0)
 BLUE = (0, 0, 255)
 GREY = (128,128,128)
 
-CROWN = pygame.transform.scale(pygame.image.load('assets/crown.png'), (44, 25))
+ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets')
+CROWN = pygame.transform.scale(pygame.image.load(os.path.join(ASSETS_DIR, 'crown.png')), (44, 25))
