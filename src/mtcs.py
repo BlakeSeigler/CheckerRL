@@ -72,8 +72,7 @@ class MTCS:
         data = format_data(game, color)
 
         # calculate values
-        value = self.net.value_forward(data)
-        priors = self.selection_forward(data)
+        value, priors = self.net.forward(data)
 
         # set the nodes values
         node.expand()
@@ -171,11 +170,17 @@ class Node:
 
     def expand(self):
         self.children = []
+
         for move in self.unexpanded_moves:
-            self.children.append(Node(
-                game=...,
-                color=...,
-                parent=self,
-                change=...,
-                skipped=...,
-            ))
+            (fx, fy), destinations = move
+        
+            for (tx, ty), skipped in destinations.items():
+                new_game = copy.copy(self.state)
+                new_game.make_move(fx, fy, tx, ty, skipped)
+                self.children.append(Node(
+                    game=new_game,
+                    color=new_game.turn,
+                    parent=self,
+                    change=((fx, fy), (tx, ty)),
+                    skipped=skipped,
+                ))

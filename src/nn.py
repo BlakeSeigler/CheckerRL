@@ -13,14 +13,10 @@ class NN(torch.nn.Module):
         self.value_head = torch.nn.Linear(self.hidden_size, 1)
         self.selection_head = torch.nn.Linear(self.hidden_size, 4096)
 
-    def value_forward(self, x):
+    def forward(self, x):
         x = torch.relu(self.encoder(x))
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
-        return self.value_head(x)
-
-    def selection_forward(self, x):
-        x = torch.relu(self.encoder(x))
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        return self.selection_head(x)
+        value = torch.tanh(self.value_head(x))         # tanh bounds between -1 and 1
+        priors = torch.softmax(self.selection_head(x))      # softmax makes these a probability distribution
+        return value, priors
