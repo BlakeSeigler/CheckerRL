@@ -10,6 +10,6 @@ Is a heuristic search algorithm, not inherently RL but can be made that way if w
 
 
 TODO
-- make faster
-- build a testing rig
-- 
+- finish running a clean run to ensure that nothing breaks
+- build a gpu server to run multiple training games in parallel for training
+- build a testing rig with prior checkpoints
