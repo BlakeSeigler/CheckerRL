@@ -17,6 +17,10 @@ def self_play_game(network):
     move_bar = tqdm(total=300, desc="Game moves", leave=False)
     while run:           # per move in a game
 
+        if game.winner() is not None or not any(d for _, d in game.get_valid_game_moves(game.turn)):
+            run = False
+            break
+
         mtcs = MTCS(game, network)
 
         # Infer the next move with the MTCS algorithm -- these are back in 8x8 format

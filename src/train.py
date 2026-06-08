@@ -40,8 +40,8 @@ def train_model():
             states, dists, turns, values = zip(*training_buffer)
             num_samples = len(states)
 
-            states = torch.tensor(states).to(device)
-            dists = torch.tensor(dists).to(device)
+            states = torch.stack(list(states)).to(device)
+            dists = torch.tensor(list(dists)).to(device)
             turns = torch.tensor(turns).to(device)
             values = torch.tensor(values).to(device)
 
