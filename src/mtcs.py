@@ -43,21 +43,28 @@ class MTCS:
 
         else:               # expanded/simmed and not terminal, go down a child branch and select again
             PUBT_weights = self.calculate_PUBT_weights(current_node)
-            best_node = max(PUBT_weights, key=lambda x: x[1])[0]
+            fx, fy, tx, ty, skipped = max(PUBT_weights, key=lambda x: x[1])[0]
+            best_node = current_node.get_or_create_child(fx, fy, tx, ty, skipped)
             return self.selection(best_node)
 
     def calculate_PUBT_weights(self, node) -> list[tuple]:
+        """
+        Scores every legal move from `node`, whether or not it has been
+        visited/materialized yet -- unvisited moves get value=0, visits=0
+        so they can be compared without paying the cost of creating a Node.
+        """
         outputs=[]
         priors = node.get_priors()
         total_visits = node.visits
-        
-        for child in node.children: # make sure this works for expanded and unexpanded properly. 
-            (fx, fy), (tx, ty) = child.change
-            value = child.get_value()
+
+        for fx, fy, tx, ty, skipped in node.moves:
+            child = node.children.get((fx, fy, tx, ty))
+            value = child.get_value() if child else 0
+            visits = child.visits if child else 0
             prior = priors[(fx*8+fy)*64 + (tx*8 + ty)]
-            outputs.append((child, value + self.exploratory_term * prior * math.sqrt(math.log(total_visits) / (1 + child.visits)))) #TODO what happens when this is 0?
-        
-        return outputs  # returns a list of (node, output)
+            outputs.append(((fx, fy, tx, ty, skipped), value + self.exploratory_term * prior * math.sqrt(math.log(total_visits) / (1 + visits))))
+
+        return outputs  # returns a list of (move, output)
 
     def simulation(self, node):
         """
@@ -71,7 +78,6 @@ class MTCS:
         value, priors = self.net.forward(data)
 
         # set the nodes values
-        node.expand()
         node.values.append(value)
         node.set_priors(priors)
 
@@ -100,7 +106,7 @@ class MTCS:
         # Select the best move -- this is the move with highest N -- high value and trustworthiness or both baked into N
         best_N = 0
         best_node = None
-        for child in self.root.children:
+        for child in self.root.children.values():
             if child.visits > best_N:
                 best_node = child
                 best_N = child.visits
@@ -115,7 +121,7 @@ class MTCS:
 
         # first get the distribution
         distribution = np.zeros(4096)
-        for child in self.root.children:
+        for child in self.root.children.values():
             from_idx = child.change[0][0] * 8 + child.change[0][1]
             to_idx = child.change[1][0] * 8 + child.change[1][1]
             distribution[from_idx * 64 + to_idx] = child.visits
@@ -136,10 +142,16 @@ class Node:
     def __init__(self, game, color, parent, change, skipped: list=None):
         self.turn = color
         self.state = game
-        self.unexpanded_moves = game.get_valid_game_moves(self.turn)  # a list of ( (from_row, from_col), {(to_row, to_col): [skipped pieces]} )
+
+        # flat list of (from_row, from_col, to_row, to_col, skipped) -- every legal move from this position
+        self.moves = []
+        for (fx, fy), destinations in game.get_valid_game_moves(self.turn):
+            for (tx, ty), skipped_pieces in destinations.items():
+                self.moves.append((fx, fy, tx, ty, skipped_pieces))
+
         self.values = [0]
         self.visits = 0
-        self.children = None
+        self.children = {}   # (from_row, from_col, to_row, to_col) -> materialized child Node, filled in lazily
         self.parent = parent
         self.change: tuple[tuple[int, int]] = change # the move that changed
         self.skipped = skipped
@@ -147,9 +159,28 @@ class Node:
         self.expanded=False
         self.terminal=False
 
-        has_moves = any(destinations for _, destinations in self.unexpanded_moves)
-        if game.winner() or not has_moves:   # winner/loser or stalemate
+        if game.winner() or not self.moves:   # winner/loser or stalemate
             self.terminal = True
+
+    def get_or_create_child(self, fx, fy, tx, ty, skipped):
+        """
+        Returns the child for this move, materializing it (deep-copying the state,
+        applying the move, building its move list) the first time it's visited.
+        """
+        key = (fx, fy, tx, ty)
+        child = self.children.get(key)
+        if child is None:
+            new_game = copy.deepcopy(self.state)
+            new_game.make_move(fx, fy, tx, ty, skipped)
+            child = Node(
+                game=new_game,
+                color=new_game.turn,
+                parent=self,
+                change=((fx, fy), (tx, ty)),
+                skipped=skipped,
+            )
+            self.children[key] = child
+        return child
 
     def get_value(self):
         return sum(self.values) / len(self.values)
@@ -166,20 +197,3 @@ class Node:
     def get_priors(self):
         return self.priors
 
-    def expand(self):
-        self.children = []
-
-        for move in self.unexpanded_moves:
-            (fx, fy), destinations = move
-        
-            for (tx, ty), skipped in destinations.items():
-                new_game = copy.deepcopy(self.state)
-                new_game.make_move(fx, fy, tx, ty, skipped)
-                self.children.append(Node(
-                    game=new_game,
-                    color=new_game.turn,
-                    parent=self,
-                    change=((fx, fy), (tx, ty)),
-                    skipped=skipped,
-                ))
-                
