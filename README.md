@@ -10,6 +10,5 @@ Is a heuristic search algorithm, not inherently RL but can be made that way if w
 
 
 TODO
-- finish running a clean run to ensure that nothing breaks
+- convergence is still not strong. Need to reduce sparsity of rewards
 - build a gpu server to run multiple training games in parallel for training
-- build a testing rig with prior checkpoints
